@@ -32,6 +32,7 @@ const boxSize = 10;
 const radius = 0.5;
 const limit = boxSize / 2 - radius;
 
+// Caja contenedora de cristal
 const boxGeometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
 const glassMaterial = new THREE.MeshPhysicalMaterial({
   color: 0x8fd3ff,
@@ -52,32 +53,116 @@ const edges = new THREE.LineSegments(
 );
 scene.add(edges);
 
-const sphere = new THREE.Mesh(
-  new THREE.SphereGeometry(radius, 32, 32),
-  new THREE.MeshStandardMaterial({ color: 0xff7043, roughness: 0.35 })
-);
-scene.add(sphere);
+// Función para generar colores en tonos pasteles
+function getRandomPastelColor() {
+  const hue = Math.random();
+  const saturation = 0.6 + Math.random() * 0.2; // 60% - 80%
+  const lightness = 0.7 + Math.random() * 0.15; // 70% - 85%
+  return new THREE.Color().setHSL(hue, saturation, lightness);
+}
 
-const velocity = new THREE.Vector3(0.035, 0.027, 0.041);
+// Estructura de datos para múltiples esferas
+const spheres = [];
+const sphereGeometry = new THREE.SphereGeometry(radius, 32, 32);
 
-// --- CONFIGURACIÓN DE LIL-GUI (CONTROLES DESPLAZADORES) ---
-const gui = new GUI({ title: 'Control de la Esfera' });
+function createSphere() {
+  const material = new THREE.MeshStandardMaterial({
+    color: getRandomPastelColor(),
+    roughness: 0.35,
+    metalness: 0.1
+  });
+  const mesh = new THREE.Mesh(sphereGeometry, material);
 
-// Carpeta para modificar las velocidades en cada eje
-const velFolder = gui.addFolder('Velocidad (Ejes)');
-const velXController = velFolder.add(velocity, 'x', -0.2, 0.2, 0.005).name('Velocidad X').listen();
-const velYController = velFolder.add(velocity, 'y', -0.2, 0.2, 0.005).name('Velocidad Y').listen();
-const velZController = velFolder.add(velocity, 'z', -0.2, 0.2, 0.005).name('Velocidad Z').listen();
-velFolder.open();
+  // Posicionamiento inicial evitando solapamiento con esferas existentes
+  let validPosition = false;
+  let attempts = 0;
+  while (!validPosition && attempts < 100) {
+    mesh.position.set(
+      THREE.MathUtils.randFloat(-limit, limit),
+      THREE.MathUtils.randFloat(-limit, limit),
+      THREE.MathUtils.randFloat(-limit, limit)
+    );
 
-// Carpeta para desplazar/mover la posición de la esfera manualmente
-const posFolder = gui.addFolder('Posición (Ejes)');
-posFolder.add(sphere.position, 'x', -limit, limit, 0.01).name('Posición X').listen();
-posFolder.add(sphere.position, 'y', -limit, limit, 0.01).name('Posición Y').listen();
-posFolder.add(sphere.position, 'z', -limit, limit, 0.01).name('Posición Z').listen();
-posFolder.open();
+    validPosition = true;
+    for (const other of spheres) {
+      if (mesh.position.distanceTo(other.mesh.position) < radius * 2) {
+        validPosition = false;
+        break;
+      }
+    }
+    attempts++;
+  }
 
-// Arreglo para almacenar y gestionar las marcas activas
+  // Velocidades iniciales aleatorias
+  const velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 0.08,
+    (Math.random() - 0.5) * 0.08,
+    (Math.random() - 0.5) * 0.08
+  );
+
+  scene.add(mesh);
+  spheres.push({ mesh, velocity });
+}
+
+function removeSphere() {
+  if (spheres.length === 0) return;
+  const s = spheres.pop();
+  scene.remove(s.mesh);
+  s.mesh.material.dispose();
+}
+
+function updateSphereCount(targetCount) {
+  while (spheres.length < targetCount) {
+    createSphere();
+  }
+  while (spheres.length > targetCount) {
+    removeSphere();
+  }
+  updateGUIFolders();
+}
+
+// Configuración de interfaz GUI
+const params = {
+  numSpheres: 1
+};
+
+const gui = new GUI({
+  container: document.getElementById('gui-container'),
+  title: 'Parámetros del Sistema'
+});
+
+gui.add(params, 'numSpheres', 1, 10, 1)
+  .name('N° Esferas')
+  .onChange((v) => updateSphereCount(v));
+
+let velFolder = gui.addFolder('Velocidades (Esfera 1)');
+let posFolder = gui.addFolder('Posiciones (Esfera 1)');
+
+function updateGUIFolders() {
+  velFolder.destroy();
+  posFolder.destroy();
+
+  velFolder = gui.addFolder('Velocidades');
+  posFolder = gui.addFolder('Posiciones');
+
+  spheres.forEach((s, idx) => {
+    const sphereName = `Esfera ${idx + 1}`;
+    const fVel = velFolder.addFolder(sphereName);
+    fVel.add(s.velocity, 'x', -0.2, 0.2, 0.005).name('Vel X').listen();
+    fVel.add(s.velocity, 'y', -0.2, 0.2, 0.005).name('Vel Y').listen();
+    fVel.add(s.velocity, 'z', -0.2, 0.2, 0.005).name('Vel Z').listen();
+
+    const fPos = posFolder.addFolder(sphereName);
+    fPos.add(s.mesh.position, 'x', -limit, limit, 0.01).name('Pos X').listen();
+    fPos.add(s.mesh.position, 'y', -limit, limit, 0.01).name('Pos Y').listen();
+    fPos.add(s.mesh.position, 'z', -limit, limit, 0.01).name('Pos Z').listen();
+  });
+}
+
+// Inicializar la primera esfera
+updateSphereCount(1);
+
+// Marcas de Impacto en Paredes
 const hitMarks = [];
 
 function createHitMark(position, normal) {
@@ -106,40 +191,98 @@ function createHitMark(position, normal) {
 }
 
 function animate() {
-  sphere.position.add(velocity);
-
-  // Verificación de colisiones
-  if (sphere.position.x >= limit) {
-    velocity.x *= -1;
-    sphere.position.x = limit;
-    createHitMark(new THREE.Vector3(boxSize / 2 - 0.01, sphere.position.y, sphere.position.z), new THREE.Vector3(-1, 0, 0));
-  } else if (sphere.position.x <= -limit) {
-    velocity.x *= -1;
-    sphere.position.x = -limit;
-    createHitMark(new THREE.Vector3(-boxSize / 2 + 0.01, sphere.position.y, sphere.position.z), new THREE.Vector3(1, 0, 0));
+  // 1. Mover esferas
+  for (let i = 0; i < spheres.length; i++) {
+    spheres[i].mesh.position.add(spheres[i].velocity);
   }
 
-  if (sphere.position.y >= limit) {
-    velocity.y *= -1;
-    sphere.position.y = limit;
-    createHitMark(new THREE.Vector3(sphere.position.x, boxSize / 2 - 0.01, sphere.position.z), new THREE.Vector3(0, -1, 0));
-  } else if (sphere.position.y <= -limit) {
-    velocity.y *= -1;
-    sphere.position.y = -limit;
-    createHitMark(new THREE.Vector3(sphere.position.x, -boxSize / 2 + 0.01, sphere.position.z), new THREE.Vector3(0, 1, 0));
+  // 2. Colisiones entre esferas
+  for (let i = 0; i < spheres.length; i++) {
+    for (let j = i + 1; j < spheres.length; j++) {
+      const s1 = spheres[i];
+      const s2 = spheres[j];
+
+      const delta = new THREE.Vector3().subVectors(s2.mesh.position, s1.mesh.position);
+      const distance = delta.length();
+      const minDistance = radius * 2;
+
+      if (distance < minDistance) {
+        // Cambiar colores a nuevos tonos pasteles tras la colisión
+        s1.mesh.material.color.copy(getRandomPastelColor());
+        s2.mesh.material.color.copy(getRandomPastelColor());
+
+        // Resolver solapamiento físico
+        const overlap = minDistance - distance;
+        const normal = delta.clone().normalize();
+        if (distance === 0) {
+          normal.set(1, 0, 0); // Prevenir división por cero
+        }
+        
+        s1.mesh.position.addScaledVector(normal, -overlap * 0.5);
+        s2.mesh.position.addScaledVector(normal, overlap * 0.5);
+
+        // Respuesta a colisión elástica de masas iguales
+        const relativeVelocity = new THREE.Vector3().subVectors(s1.velocity, s2.velocity);
+        const velAlongNormal = relativeVelocity.dot(normal);
+
+        if (velAlongNormal > 0) {
+          const impulse = normal.clone().multiplyScalar(velAlongNormal);
+          s1.velocity.sub(impulse);
+          s2.velocity.add(impulse);
+        }
+      }
+    }
   }
 
-  if (sphere.position.z >= limit) {
-    velocity.z *= -1;
-    sphere.position.z = limit;
-    createHitMark(new THREE.Vector3(sphere.position.x, sphere.position.y, boxSize / 2 - 0.01), new THREE.Vector3(0, 0, -1));
-  } else if (sphere.position.z <= -limit) {
-    velocity.z *= -1;
-    sphere.position.z = -limit;
-    createHitMark(new THREE.Vector3(sphere.position.x, sphere.position.y, -boxSize / 2 + 0.01), new THREE.Vector3(0, 0, 1));
+  // 3. Colisiones con paredes y generación de marcas de impacto
+  for (let i = 0; i < spheres.length; i++) {
+    const s = spheres[i];
+    const pos = s.mesh.position;
+    const vel = s.velocity;
+    let collided = false;
+
+    if (pos.x >= limit) {
+      vel.x *= -1;
+      pos.x = limit;
+      createHitMark(new THREE.Vector3(boxSize / 2 - 0.01, pos.y, pos.z), new THREE.Vector3(-1, 0, 0));
+      collided = true;
+    } else if (pos.x <= -limit) {
+      vel.x *= -1;
+      pos.x = -limit;
+      createHitMark(new THREE.Vector3(-boxSize / 2 + 0.01, pos.y, pos.z), new THREE.Vector3(1, 0, 0));
+      collided = true;
+    }
+
+    if (pos.y >= limit) {
+      vel.y *= -1;
+      pos.y = limit;
+      createHitMark(new THREE.Vector3(pos.x, boxSize / 2 - 0.01, pos.z), new THREE.Vector3(0, -1, 0));
+      collided = true;
+    } else if (pos.y <= -limit) {
+      vel.y *= -1;
+      pos.y = -limit;
+      createHitMark(new THREE.Vector3(pos.x, -boxSize / 2 + 0.01, pos.z), new THREE.Vector3(0, 1, 0));
+      collided = true;
+    }
+
+    if (pos.z >= limit) {
+      vel.z *= -1;
+      pos.z = limit;
+      createHitMark(new THREE.Vector3(pos.x, pos.y, boxSize / 2 - 0.01), new THREE.Vector3(0, 0, -1));
+      collided = true;
+    } else if (pos.z <= -limit) {
+      vel.z *= -1;
+      pos.z = -limit;
+      createHitMark(new THREE.Vector3(pos.x, pos.y, -boxSize / 2 + 0.01), new THREE.Vector3(0, 0, 1));
+      collided = true;
+    }
+
+    if (collided) {
+      s.mesh.material.color.copy(getRandomPastelColor());
+    }
   }
 
-  // Actualizar y desvanecer las marcas
+  // 4. Actualización y desvanecimiento de marcas
   for (let i = hitMarks.length - 1; i >= 0; i--) {
     const item = hitMarks[i];
     item.life -= 0.02;
