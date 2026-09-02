@@ -17,9 +17,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Inicialización de OrbitControls
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; // Agrega suavizado al movimiento
+controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.target.set(0, 0, 0);
 
@@ -60,25 +59,84 @@ scene.add(sphere);
 
 const velocity = new THREE.Vector3(0.035, 0.027, 0.041);
 
+// Arreglo para almacenar y gestionar las marcas activas
+const hitMarks = [];
+
+function createHitMark(position, normal) {
+  const markSize = 1.2;
+  const markGeometry = new THREE.PlaneGeometry(markSize, markSize);
+  const markMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff3366,       // Color brillante para la marca
+    transparent: true,
+    opacity: 0.8,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+
+  const mark = new THREE.Mesh(markGeometry, markMaterial);
+  mark.position.copy(position);
+
+  // Orienta el plano de la marca según la normal del muro colisionado
+  const lookAtPoint = position.clone().add(normal);
+  mark.lookAt(lookAtPoint);
+
+  scene.add(mark);
+
+  hitMarks.push({
+    mesh: mark,
+    life: 1.0 // Nivel de opacidad inicial / vida
+  });
+}
+
 function animate() {
   sphere.position.add(velocity);
 
-  if (sphere.position.x >= limit || sphere.position.x <= -limit) {
+  // Verificación de colisiones con detección de impacto y marca
+  if (sphere.position.x >= limit) {
     velocity.x *= -1;
-    sphere.position.x = THREE.MathUtils.clamp(sphere.position.x, -limit, limit);
+    sphere.position.x = limit;
+    createHitMark(new THREE.Vector3(boxSize / 2 - 0.01, sphere.position.y, sphere.position.z), new THREE.Vector3(-1, 0, 0));
+  } else if (sphere.position.x <= -limit) {
+    velocity.x *= -1;
+    sphere.position.x = -limit;
+    createHitMark(new THREE.Vector3(-boxSize / 2 + 0.01, sphere.position.y, sphere.position.z), new THREE.Vector3(1, 0, 0));
   }
-  if (sphere.position.y >= limit || sphere.position.y <= -limit) {
+
+  if (sphere.position.y >= limit) {
     velocity.y *= -1;
-    sphere.position.y = THREE.MathUtils.clamp(sphere.position.y, -limit, limit);
+    sphere.position.y = limit;
+    createHitMark(new THREE.Vector3(sphere.position.x, boxSize / 2 - 0.01, sphere.position.z), new THREE.Vector3(0, -1, 0));
+  } else if (sphere.position.y <= -limit) {
+    velocity.y *= -1;
+    sphere.position.y = -limit;
+    createHitMark(new THREE.Vector3(sphere.position.x, -boxSize / 2 + 0.01, sphere.position.z), new THREE.Vector3(0, 1, 0));
   }
-  if (sphere.position.z >= limit || sphere.position.z <= -limit) {
+
+  if (sphere.position.z >= limit) {
     velocity.z *= -1;
-    sphere.position.z = THREE.MathUtils.clamp(sphere.position.z, -limit, limit);
+    sphere.position.z = limit;
+    createHitMark(new THREE.Vector3(sphere.position.x, sphere.position.y, boxSize / 2 - 0.01), new THREE.Vector3(0, 0, -1));
+  } else if (sphere.position.z <= -limit) {
+    velocity.z *= -1;
+    sphere.position.z = -limit;
+    createHitMark(new THREE.Vector3(sphere.position.x, sphere.position.y, -boxSize / 2 + 0.01), new THREE.Vector3(0, 0, 1));
   }
 
-  // Actualiza los controles en cada cuadro
-  controls.update();
+  // Actualizar y desvanecer las marcas activas
+  for (let i = hitMarks.length - 1; i >= 0; i--) {
+    const item = hitMarks[i];
+    item.life -= 0.02; // Velocidad de desvanecimiento
+    item.mesh.material.opacity = item.life;
 
+    if (item.life <= 0) {
+      scene.remove(item.mesh);
+      item.mesh.geometry.dispose();
+      item.mesh.material.dispose();
+      hitMarks.splice(i, 1);
+    }
+  }
+
+  controls.update();
   renderer.render(scene, camera);
 }
 
