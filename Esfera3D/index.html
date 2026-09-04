@@ -1,25 +1,148 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Práctica 1.2 | Esfera rebotando en una caja de cristal</title>
- <link rel="stylesheet" href="./assets/css/styles.css">
 
- <script type="importmap">
- {
-   "imports": {
-     "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-   }
- }
- </script>
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Esfera 3D | Caja de cristal</title>
+
+
+  <!-- CSS -->
+  <link
+    rel="stylesheet"
+    href="./assets/css/styles.css"
+  >
+
+
+  <!-- IMPORT MAP -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+      "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm"
+    }
+  }
+  </script>
+
 </head>
+
+
 <body>
- <header class="panel">
-   <h1>Esfera rebotando en una caja de cristal</h1>
-   <p>Three.js: movimiento 3D, vectores y colisiones con límites.</p>
- </header>
- <script type="module" src="./assets/js/main.js"></script>
+
+
+  <!-- =============================================
+       PANEL DE CONTROLES
+  ============================================== -->
+
+  <aside class="control-box">
+
+    <header class="panel-header">
+
+      <h1>
+        Esferas en Caja 3D
+      </h1>
+
+      <p>
+        Movimiento, colisiones y foco interactivo
+      </p>
+
+    </header>
+
+
+    <div id="gui-container"></div>
+
+
+    <div class="instructions">
+
+      <h2>Controles</h2>
+
+      <p>
+        <strong>Mouse sobre el foco:</strong>
+        arrastrar para moverlo
+      </p>
+
+      <p>
+        <strong>Rueda del mouse:</strong>
+        subir / bajar foco
+      </p>
+
+      <p>
+        <strong>Mouse:</strong>
+        girar cámara
+      </p>
+
+      <p>
+        <strong>R:</strong>
+        reiniciar las pelotas
+      </p>
+
+    </div>
+
+  </aside>
+
+
+  <!-- =============================================
+       ETIQUETAS DE EJES
+  ============================================== -->
+
+  <div
+    id="label-x"
+    class="axis-label"
+  >
+    X
+  </div>
+
+
+  <div
+    id="label-y"
+    class="axis-label"
+  >
+    Y
+  </div>
+
+
+  <div
+    id="label-z"
+    class="axis-label"
+  >
+    Z
+  </div>
+
+
+  <!-- =============================================
+       INFORMACIÓN
+  ============================================== -->
+
+  <div class="info-box">
+
+    <div id="sphere-position">
+      Esferas: 10
+    </div>
+
+    <div id="light-position">
+      Foco: X 0.00 | Y 9.00 | Z 0.00
+    </div>
+
+  </div>
+
+
+  <!-- =============================================
+       JAVASCRIPT
+  ============================================== -->
+
+  <script
+    type="module"
+    src="./js/main.js"
+  ></script>
+
+
 </body>
+
 </html>

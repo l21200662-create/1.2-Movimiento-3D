@@ -1,13 +1,482 @@
-* { box-sizing: border-box; }
-html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { font-family: Arial, sans-serif; background: #07111f; }
-canvas { display: block; }
-.panel {
-  position: fixed; z-index: 1; top: 20px; left: 20px;
-  padding: 14px 18px; color: white;
-  background: rgba(5, 18, 36, 0.75);
-  border-left: 4px solid #22d3ee; border-radius: 8px;
-  pointer-events: none; /* Permite arrastrar la cámara incluso sobre el panel */
+/* =====================================================
+   CONFIGURACIÓN GENERAL
+===================================================== */
+
+* {
+  box-sizing: border-box;
 }
-.panel h1 { margin: 0 0 5px; font-size: 1.25rem; }
-.panel p { margin: 0; font-size: 0.9rem; }
+
+html,
+body {
+
+  width: 100%;
+  height: 100%;
+
+  margin: 0;
+  padding: 0;
+
+  overflow: hidden;
+
+  font-family:
+    'Segoe UI',
+    Tahoma,
+    Geneva,
+    Verdana,
+    sans-serif;
+
+  background: #0b1021;
+}
+
+canvas {
+
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  touch-action: none;
+
+  outline: none;
+}
+
+
+/* =====================================================
+   PANEL PRINCIPAL
+===================================================== */
+
+.control-box {
+
+  position: fixed;
+
+  top: 20px;
+  left: 20px;
+
+  width: 320px;
+
+  max-height:
+    calc(100vh - 40px);
+
+  overflow-y: auto;
+
+  padding: 16px;
+
+  color: #f1f5f9;
+
+  background:
+    rgba(15, 23, 42, 0.88);
+
+  border:
+    1px solid rgba(255, 255, 255, 0.12);
+
+  border-left:
+    4px solid #a855f7;
+
+  border-radius: 12px;
+
+  backdrop-filter:
+    blur(12px);
+
+  -webkit-backdrop-filter:
+    blur(12px);
+
+  box-shadow:
+    0 10px 30px
+    rgba(0, 0, 0, 0.5);
+
+  z-index: 20;
+}
+
+
+/* =====================================================
+   SCROLLBAR
+===================================================== */
+
+.control-box::-webkit-scrollbar {
+
+  width: 7px;
+}
+
+.control-box::-webkit-scrollbar-track {
+
+  background:
+    rgba(255, 255, 255, 0.05);
+
+  border-radius: 10px;
+}
+
+.control-box::-webkit-scrollbar-thumb {
+
+  background:
+    linear-gradient(
+      #a855f7,
+      #6366f1
+    );
+
+  border-radius: 10px;
+}
+
+.control-box::-webkit-scrollbar-thumb:hover {
+
+  background: #c084fc;
+}
+
+
+/* =====================================================
+   ENCABEZADO
+===================================================== */
+
+.panel-header {
+
+  margin-bottom: 14px;
+}
+
+.panel-header h1 {
+
+  margin:
+    0 0 4px;
+
+  font-size: 1.15rem;
+
+  font-weight: 600;
+
+  color: #c084fc;
+
+  text-shadow:
+    0 0 12px
+    rgba(192, 132, 252, 0.45);
+}
+
+.panel-header p {
+
+  margin: 0;
+
+  font-size: 0.8rem;
+
+  color: #cbd5e1;
+}
+
+
+/* =====================================================
+   LIL-GUI
+===================================================== */
+
+#gui-container {
+
+  width: 100%;
+}
+
+#gui-container .lil-gui {
+
+  width: 100%;
+
+  --background-color:
+    transparent;
+
+  --text-color:
+    #e2e8f0;
+
+  --title-background-color:
+    rgba(255, 255, 255, 0.06);
+
+  --title-text-color:
+    #f8fafc;
+
+  --widget-color:
+    rgba(255, 255, 255, 0.1);
+
+  --hover-color:
+    rgba(168, 85, 247, 0.25);
+
+  --focus-color:
+    #8b5cf6;
+
+  --number-color:
+    #c084fc;
+
+  --string-color:
+    #67e8f9;
+
+  --font-size:
+    12px;
+
+  --widget-padding:
+    6px;
+
+  font-family:
+    inherit;
+
+  box-shadow: none;
+
+  border: none;
+
+  border-radius: 8px;
+}
+
+#gui-container .lil-gui .title {
+
+  border-radius:
+    8px 8px 0 0;
+
+  background:
+    rgba(255, 255, 255, 0.06);
+
+  color:
+    #e9d5ff;
+
+  font-weight:
+    600;
+}
+
+#gui-container .lil-gui .controller.folder {
+
+  margin-top: 5px;
+}
+
+#gui-container .lil-gui input {
+
+  border-radius: 5px;
+}
+
+#gui-container .lil-gui .slider {
+
+  border-radius: 6px;
+}
+
+#gui-container .lil-gui .slider .fill {
+
+  background:
+    linear-gradient(
+      90deg,
+      #a855f7,
+      #6366f1,
+      #22d3ee
+    );
+}
+
+#gui-container .lil-gui button {
+
+  border-radius: 6px;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+#gui-container .lil-gui button:hover {
+
+  transform:
+    translateY(-1px);
+}
+
+
+/* =====================================================
+   INSTRUCCIONES
+===================================================== */
+
+.instructions {
+
+  margin-top: 16px;
+
+  padding: 12px;
+
+  background:
+    rgba(255, 255, 255, 0.04);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.08);
+
+  border-radius: 10px;
+}
+
+.instructions h2 {
+
+  margin:
+    0 0 10px;
+
+  font-size: 0.9rem;
+
+  color:
+    #e9d5ff;
+}
+
+.instructions p {
+
+  margin: 6px 0;
+
+  font-size: 0.73rem;
+
+  color:
+    #cbd5e1;
+
+  line-height: 1.4;
+}
+
+.instructions strong {
+
+  color: #ffffff;
+}
+
+
+/* =====================================================
+   INFORMACIÓN
+===================================================== */
+
+.info-box {
+
+  position: fixed;
+
+  right: 20px;
+  bottom: 20px;
+
+  padding:
+    10px 14px;
+
+  background:
+    rgba(10, 15, 25, 0.85);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.12);
+
+  border-radius: 10px;
+
+  color:
+    #e2e8f0;
+
+  font-family:
+    monospace;
+
+  font-size:
+    12px;
+
+  line-height:
+    1.7;
+
+  z-index: 10;
+
+  pointer-events:
+    none;
+
+  box-shadow:
+    0 8px 25px
+    rgba(0, 0, 0, 0.35);
+}
+
+
+/* =====================================================
+   ETIQUETAS XYZ
+===================================================== */
+
+.axis-label {
+
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  padding:
+    2px 5px;
+
+  font-family:
+    monospace;
+
+  font-size:
+    14px;
+
+  font-weight:
+    bold;
+
+  pointer-events:
+    none;
+
+  user-select:
+    none;
+
+  text-shadow:
+    0 0 4px
+    rgba(0, 0, 0, 0.9);
+
+  z-index: 5;
+
+  transform:
+    translate(-50%, -50%);
+}
+
+#label-x {
+  color: #ff4444;
+}
+
+#label-y {
+  color: #44ff44;
+}
+
+#label-z {
+  color: #4488ff;
+}
+
+
+/* =====================================================
+   CURSOR CUANDO SE MUEVE EL FOCO
+===================================================== */
+
+body.dragging-light canvas {
+
+  cursor:
+    grabbing;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 600px) {
+
+  .control-box {
+
+    top: 10px;
+    left: 10px;
+
+    width:
+      calc(100vw - 20px);
+
+    max-height:
+      45vh;
+
+    padding: 12px;
+  }
+
+  .panel-header h1 {
+
+    font-size:
+      1rem;
+  }
+
+  .panel-header p {
+
+    font-size:
+      0.75rem;
+  }
+
+  .info-box {
+
+    right: 10px;
+    bottom: 10px;
+
+    font-size:
+      10px;
+  }
+}
+
+
+@media (max-height: 650px) {
+
+  .control-box {
+
+    top: 10px;
+
+    max-height:
+      calc(100vh - 20px);
+  }
+}
